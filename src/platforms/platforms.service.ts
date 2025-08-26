@@ -1,88 +1,93 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import {
-  Platform,
-  PlatformDocument,
-} from './schemas/platform.schema';
+import { Model, FilterQuery } from 'mongoose';
+import { Platform, PlatformDocument } from './schemas/platform.schema';
 import { CreatePlatformDto } from './dto/create-platform.dto';
 import { UpdatePlatformDto } from './dto/update-platform.dto';
 
 @Injectable()
 export class PlatformsService {
   constructor(
-    @InjectModel(Platform.name)
-    private readonly platformModel: Model<PlatformDocument>,
+    @InjectModel(Platform.name) private readonly model: Model<PlatformDocument>,
   ) {}
 
-  /** Catálogo activo para usuarios */
-  async findActive(): Promise<Platform[]> {
+  async findAll(params?: { supported?: boolean }): Promise<Platform[]> {
     try {
-      return await this.platformModel.find({ isActive: true }).lean();
+      const filter: FilterQuery<PlatformDocument> = {};
+      if (typeof params?.supported === 'boolean') {
+        filter.isSupported = params.supported;
+      }
+      // Puedes agregar más filtros (isActive, category, etc.)
+      return await this.model.find(filter).sort({ name: 1 }).lean();
     } catch (err) {
-      throw new BadRequestException('Failed to fetch platforms');
+      throw new HttpException(
+        err?.message ?? 'Failed to fetch platforms',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  /** ADMIN: listar todas */
-  async findAll(): Promise<Platform[]> {
-    try {
-      return await this.platformModel.find().lean();
-    } catch (err) {
-      throw new BadRequestException('Failed to fetch all platforms');
-    }
-  }
-
-  /** ADMIN: crear */
   async create(dto: CreatePlatformDto): Promise<Platform> {
     try {
-      const exists = await this.platformModel
-        .findOne({ name: dto.name.trim() })
-        .lean();
-      if (exists) {
-        throw new BadRequestException('Platform with this name already exists');
-      }
-      const created = await this.platformModel.create(dto);
+      // name es único; capturamos error 11000
+      const created = await this.model.create({
+        name: dto.name.trim(),
+        category: dto.category,
+        imageUrl: dto.imageUrl?.trim() || undefined,
+        isActive: dto.isActive ?? true,
+        isSupported: dto.isSupported ?? false,
+      });
       return created.toObject();
-    } catch (err) {
-      // Si ya es HttpException, propágala; si no, wrap
-      if (err?.status) throw err;
-      throw new BadRequestException('Failed to create platform');
+    } catch (err: any) {
+      if (err?.code === 11000) {
+        throw new HttpException('Platform name already exists', HttpStatus.BAD_REQUEST);
+      }
+      throw new HttpException(
+        err?.message ?? 'Failed to create platform',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  /** ADMIN: actualizar */
   async update(id: string, dto: UpdatePlatformDto): Promise<Platform> {
     try {
-      if (!Types.ObjectId.isValid(id)) {
-        throw new BadRequestException('Invalid platform id');
+      const update: any = {};
+      if (dto.name !== undefined) update.name = dto.name.trim();
+      if (dto.category !== undefined) update.category = dto.category;
+      if (dto.imageUrl !== undefined) update.imageUrl = dto.imageUrl?.trim() || '';
+      if (dto.isActive !== undefined) update.isActive = dto.isActive;
+      if (dto.isSupported !== undefined) update.isSupported = dto.isSupported;
+
+      const doc = await this.model.findByIdAndUpdate(id, update, { new: true });
+      if (!doc) {
+        throw new HttpException('Platform not found', HttpStatus.NOT_FOUND);
       }
-      const updated = await this.platformModel.findByIdAndUpdate(id, dto, {
-        new: true,
-      });
-      if (!updated) throw new NotFoundException('Platform not found');
-      return updated.toObject();
-    } catch (err) {
-      if (err?.status) throw err;
-      throw new BadRequestException('Failed to update platform');
+      return doc.toObject();
+    } catch (err: any) {
+      if (err?.code === 11000) {
+        throw new HttpException('Platform name already exists', HttpStatus.BAD_REQUEST);
+      }
+      if (err instanceof HttpException) throw err;
+      throw new HttpException(
+        err?.message ?? 'Failed to update platform',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  /** ADMIN: eliminar */
-  async remove(id: string): Promise<void> {
+  async remove(id: string): Promise<{ deleted: boolean }> {
     try {
-      if (!Types.ObjectId.isValid(id)) {
-        throw new BadRequestException('Invalid platform id');
+      const res = await this.model.findByIdAndDelete(id);
+      if (!res) {
+        throw new HttpException('Platform not found', HttpStatus.NOT_FOUND);
       }
-      const res = await this.platformModel.findByIdAndDelete(id);
-      if (!res) throw new NotFoundException('Platform not found');
+      return { deleted: true };
     } catch (err) {
-      if (err?.status) throw err;
-      throw new BadRequestException('Failed to remove platform');
+      if (err instanceof HttpException) throw err;
+      throw new HttpException(
+        err?.message ?? 'Failed to delete platform',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

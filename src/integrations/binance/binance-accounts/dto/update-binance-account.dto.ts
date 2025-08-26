@@ -1,23 +1,25 @@
-// src/integrations/binance-accounts/dto/update-binance-account.dto.ts
-import { IsOptional, IsString, IsBoolean, Length } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdateBinanceAccountDto {
   @IsOptional()
   @IsString()
-  @Length(1, 100)
   description?: string;
 
   @IsOptional()
   @IsString()
-  @Length(1, 200)
+  @MinLength(8)
   apiKey?: string;
 
   @IsOptional()
   @IsString()
-  @Length(1, 200)
+  @MinLength(8)
   apiSecret?: string;
 
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
 }

@@ -1,18 +1,24 @@
-import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 import { PlatformCategory } from '../schemas/platform.schema';
 
 export class CreatePlatformDto {
   @IsString()
+  @IsNotEmpty()
   name: string;
 
-  @IsEnum(PlatformCategory, { message: 'category must be a valid PlatformCategory' })
+  @IsEnum(PlatformCategory)
   category: PlatformCategory;
 
   @IsOptional()
   @IsString()
-  image?: string;
+  @IsUrl({ require_protocol: true }, { message: 'imageUrl must be a valid URL with protocol' })
+  imageUrl?: string;
 
   @IsOptional()
   @IsBoolean()
-  isActive?: boolean; // por defecto true en el schema
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isSupported?: boolean;
 }

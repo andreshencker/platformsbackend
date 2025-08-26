@@ -1,106 +1,94 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  HttpException,
-  HttpStatus,
-  Param,
-  Patch,
   Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
   UseGuards,
+  HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { PlatformsService } from './platforms.service';
 import { CreatePlatformDto } from './dto/create-platform.dto';
 import { UpdatePlatformDto } from './dto/update-platform.dto';
+
+// Ajusta rutas de guards/decorators a tu estructura real
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/schemas/user.schema';
 
-@UseGuards(JwtAuthGuard)
-@Controller()
+@Controller('platforms')
 export class PlatformsController {
-  constructor(private readonly platformsService: PlatformsService) {}
+  constructor(private readonly service: PlatformsService) {}
 
-  /** Catálogo visible para usuario autenticado */
-  @Get('platforms')
-  async getActive() {
+  /**
+   * GET /platforms?supported=true|false
+   * Recomendado: accesible con sesión (o público, según tu política).
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async list(@Query('supported') supported?: string) {
     try {
-      const data = await this.platformsService.findActive();
-      return { statusCode: 200, message: 'Platforms fetched successfully', data };
-    } catch (err) {
-      throw new HttpException(
-        {
-          statusCode: 500,
-          message: 'Failed to fetch active platforms',
-          error: err?.message || err,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      const sup =
+        typeof supported === 'string'
+          ? supported.toLowerCase() === 'true'
+          : undefined;
+
+      const data = await this.service.findAll({ supported: sup as any });
+      return { status: 200, message: 'OK', data };
+    } catch (err: any) {
+      const code = err?.status ?? HttpStatus.INTERNAL_SERVER_ERROR;
+      throw new HttpException({ status: code, message: err?.message ?? 'Error' }, code);
     }
   }
 
-  /** ADMIN */
-  @Get('admin/platforms')
-  async findAll() {
-    try {
-      const data = await this.platformsService.findAll();
-      return { statusCode: 200, message: 'All platforms fetched successfully', data };
-    } catch (err) {
-      throw new HttpException(
-        {
-          statusCode: 500,
-          message: 'Failed to fetch platforms',
-          error: err?.message || err,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  @Post('admin/platforms')
+  /** POST /platforms — solo ADMIN */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post()
   async create(@Body() dto: CreatePlatformDto) {
     try {
-      const data = await this.platformsService.create(dto);
-      return { statusCode: 200, message: 'Platform created successfully', data };
-    } catch (err) {
-      throw new HttpException(
-        {
-          statusCode: err?.status || 400,
-          message: err?.message || 'Failed to create platform',
-        },
-        err?.status || HttpStatus.BAD_REQUEST,
-      );
+      const data = await this.service.create(dto);
+      return { status: 200, message: 'Created', data };
+    } catch (err: any) {
+      const code =
+        err?.status ??
+        (err?.name === 'ValidationError' ? HttpStatus.BAD_REQUEST : HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException({ status: code, message: err?.message ?? 'Error' }, code);
     }
   }
 
-  @Patch('admin/platforms/:id')
+  /** PATCH /platforms/:id — solo ADMIN */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdatePlatformDto) {
     try {
-      const data = await this.platformsService.update(id, dto);
-      return { statusCode: 200, message: 'Platform updated successfully', data };
-    } catch (err) {
-      throw new HttpException(
-        {
-          statusCode: err?.status || 400,
-          message: err?.message || 'Failed to update platform',
-        },
-        err?.status || HttpStatus.BAD_REQUEST,
-      );
+      const data = await this.service.update(id, dto);
+      return { status: 200, message: 'Updated', data };
+    } catch (err: any) {
+      const code =
+        err?.status ??
+        (err?.name === 'ValidationError' ? HttpStatus.BAD_REQUEST : HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException({ status: code, message: err?.message ?? 'Error' }, code);
     }
   }
 
-  @Delete('admin/platforms/:id')
+  /** DELETE /platforms/:id — solo ADMIN */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
-      await this.platformsService.remove(id);
-      return { statusCode: 200, message: 'Platform removed successfully' };
-    } catch (err) {
-      throw new HttpException(
-        {
-          statusCode: err?.status || 400,
-          message: err?.message || 'Failed to remove platform',
-        },
-        err?.status || HttpStatus.BAD_REQUEST,
-      );
+      const data = await this.service.remove(id);
+      return { status: 200, message: 'Deleted', data };
+    } catch (err: any) {
+      const code = err?.status ?? HttpStatus.INTERNAL_SERVER_ERROR;
+      throw new HttpException({ status: code, message: err?.message ?? 'Error' }, code);
     }
   }
 }

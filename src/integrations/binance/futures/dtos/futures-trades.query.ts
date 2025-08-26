@@ -1,6 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { toMs, MIN_MS } from '../../common/time.util';
+import { toMs, MIN_MS } from '../../../../common/time.util';
 
 export class FuturesTradesQueryDto {
   @IsString()

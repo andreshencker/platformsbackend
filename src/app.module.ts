@@ -6,10 +6,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 // importa tus módulos reales
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { BinanceModule } from './binance/binance.module';
+import { BinanceModule } from './integrations/binance/futures/binance.module';
 import { PlatformsModule } from './platforms/platforms.module';
-import { BinanceAccountsModule } from './integrations/binance-accounts/binance-accounts.module';
-
+import { BinanceAccountsModule } from './integrations/binance/binance-accounts/binance-accounts.module';
+import { UserPlatformsModule } from './user-platforms/user-platforms.module';
 
 
 @Module({
@@ -47,6 +47,7 @@ import { BinanceAccountsModule } from './integrations/binance-accounts/binance-a
     BinanceModule,
     PlatformsModule,
     BinanceAccountsModule,
+    UserPlatformsModule,
   ],
   providers: [],
   controllers: [],
