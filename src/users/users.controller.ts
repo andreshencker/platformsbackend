@@ -20,10 +20,13 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from './schemas/user.schema';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CreateUserAdminDto } from './dto/create-user-admin.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+
 
   /** admin: listar todos */
   @UseGuards(JwtAuthGuard)
@@ -38,6 +41,35 @@ export class UsersController {
       return res.status(code).json({ status: code, message: err?.message ?? 'Error' });
     }
   }
+
+  @Roles(UserRole.ADMIN)
+  @Post('')
+  async createByAdmin(@Body() dto: CreateUserAdminDto) {
+    try {
+      const data = await this.usersService.createByAdmin(dto);
+      return {
+        status: HttpStatus.CREATED,
+        message: 'User created successfully',
+        data,
+      };
+    } catch (err: any) {
+      const code =
+        err?.status ??
+        (err?.code === 11000
+          ? HttpStatus.CONFLICT
+          : HttpStatus.INTERNAL_SERVER_ERROR);
+
+      throw new HttpException(
+        {
+          status: code,
+          message: err?.message ?? 'Error creating user',
+        },
+        code,
+      );
+    }
+  }
+
+
 
   /** perfil propio */
   @UseGuards(JwtAuthGuard)

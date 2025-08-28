@@ -1,3 +1,5 @@
+// src/platforms/platforms.service.ts
+
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, FilterQuery } from 'mongoose';
@@ -14,10 +16,8 @@ export class PlatformsService {
   async findAll(params?: { supported?: boolean }): Promise<Platform[]> {
     try {
       const filter: FilterQuery<PlatformDocument> = {};
-      if (typeof params?.supported === 'boolean') {
-        filter.isSupported = params.supported;
-      }
-      // Puedes agregar más filtros (isActive, category, etc.)
+      if (typeof params?.supported === 'boolean') filter.isSupported = params.supported;
+
       return await this.model.find(filter).sort({ name: 1 }).lean();
     } catch (err) {
       throw new HttpException(
@@ -27,15 +27,32 @@ export class PlatformsService {
     }
   }
 
+  async findById(id: string): Promise<Platform> {
+    try {
+      const platform = await this.model.findById(id).lean();
+      if (!platform) {
+        throw new HttpException('Platform not found', HttpStatus.NOT_FOUND);
+      }
+      return platform;
+    } catch (err: any) {
+      if (err instanceof HttpException) throw err;
+      throw new HttpException(
+        err?.message ?? 'Failed to fetch platform',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async create(dto: CreatePlatformDto): Promise<Platform> {
     try {
-      // name es único; capturamos error 11000
       const created = await this.model.create({
         name: dto.name.trim(),
         category: dto.category,
         imageUrl: dto.imageUrl?.trim() || undefined,
         isActive: dto.isActive ?? true,
         isSupported: dto.isSupported ?? false,
+        // 👇 **FALTABA ESTO**
+        connectionType: dto.connectionType, // 'apikey' | 'oauth'
       });
       return created.toObject();
     } catch (err: any) {
@@ -57,11 +74,11 @@ export class PlatformsService {
       if (dto.imageUrl !== undefined) update.imageUrl = dto.imageUrl?.trim() || '';
       if (dto.isActive !== undefined) update.isActive = dto.isActive;
       if (dto.isSupported !== undefined) update.isSupported = dto.isSupported;
+      // 👇 **Y ESTO TAMBIÉN**
+      if (dto.connectionType !== undefined) update.connectionType = dto.connectionType;
 
       const doc = await this.model.findByIdAndUpdate(id, update, { new: true });
-      if (!doc) {
-        throw new HttpException('Platform not found', HttpStatus.NOT_FOUND);
-      }
+      if (!doc) throw new HttpException('Platform not found', HttpStatus.NOT_FOUND);
       return doc.toObject();
     } catch (err: any) {
       if (err?.code === 11000) {
@@ -78,9 +95,7 @@ export class PlatformsService {
   async remove(id: string): Promise<{ deleted: boolean }> {
     try {
       const res = await this.model.findByIdAndDelete(id);
-      if (!res) {
-        throw new HttpException('Platform not found', HttpStatus.NOT_FOUND);
-      }
+      if (!res) throw new HttpException('Platform not found', HttpStatus.NOT_FOUND);
       return { deleted: true };
     } catch (err) {
       if (err instanceof HttpException) throw err;

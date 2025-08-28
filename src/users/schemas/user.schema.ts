@@ -29,6 +29,8 @@ export class User {
   @Prop({ default: true })
   isActive: boolean;
 
+  @Prop({ trim: true }) avatarUrl?: string;
+
   // Tipado explícito (timestamps los setea mongoose)
   @Prop() createdAt?: Date;
   @Prop() updatedAt?: Date;

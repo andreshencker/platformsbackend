@@ -1,8 +1,11 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, ConflictException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument, UserRole } from './schemas/user.schema';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserAdminDto } from './dto/create-user-admin.dto';
+import bcrypt from 'bcryptjs';
+
 
 type CreateParams = {
   email: string;
@@ -47,6 +50,34 @@ export class UsersService {
       throw new HttpException(err?.message ?? 'Failed to create user', code);
     }
   }
+
+  async createByAdmin(dto: CreateUserAdminDto): Promise<User> {
+    // ¿email ya existe?
+    const exists = await this.userModel.exists({ email: dto.email.toLowerCase().trim() });
+    if (exists) throw new ConflictException('Email already registered');
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    const doc = await this.userModel.create({
+      firstName: dto.firstName.trim(),
+      middleName: dto.middleName?.trim() || undefined,
+      lastName: dto.lastName.trim(),
+      secondLastName: dto.secondLastName?.trim() || undefined,
+      email: dto.email.toLowerCase().trim(),
+      passwordHash,
+      role: dto.role,
+      isActive: dto.isActive ?? true,
+      avatarUrl: dto.avatarUrl?.trim() || undefined,
+    });
+
+    // Quitar passwordHash del objeto de retorno
+    const obj = doc.toObject();
+    delete (obj as any).passwordHash;
+    return obj as User;
+  }
+
+
+
 
   /** Lista todos (ADMIN) */
   async findAll() {

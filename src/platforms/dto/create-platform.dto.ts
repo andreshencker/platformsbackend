@@ -1,5 +1,5 @@
 import { IsBoolean, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
-import { PlatformCategory } from '../schemas/platform.schema';
+import { PlatformCategory, ConnectionType } from '../schemas/platform.schema';
 
 export class CreatePlatformDto {
   @IsString()
@@ -8,6 +8,9 @@ export class CreatePlatformDto {
 
   @IsEnum(PlatformCategory)
   category: PlatformCategory;
+
+  @IsEnum(ConnectionType, { message: 'connectionType must be either apikey or oauth' })
+  connectionType: ConnectionType;
 
   @IsOptional()
   @IsString()

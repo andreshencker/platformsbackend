@@ -19,7 +19,7 @@ export class UserPlatformsService {
     private readonly model: Model<UserPlatformDocument>,
   ) {}
 
-  /* Helpers */
+  /* ========== Helpers ========== */
 
   private toObjectId(id: string): Types.ObjectId {
     if (!Types.ObjectId.isValid(id)) {
@@ -32,31 +32,46 @@ export class UserPlatformsService {
     return { userId, ...extra };
   }
 
-  /* Queries */
+  private readonly platformPopulate = {
+    path: 'platform',
+    select:
+      'name category imageUrl isActive isSupported connectionType', // campos de Platform
+  };
+
+  private async clearOtherDefaults(
+    userId: Types.ObjectId,
+    keepId: Types.ObjectId,
+  ) {
+    await this.model.updateMany(
+      this.scope(userId, { _id: { $ne: keepId }, isDefault: true }),
+      { $set: { isDefault: false } },
+    );
+  }
+
+  /* ========== Queries ========== */
 
   async listMine(userId: Types.ObjectId) {
     return this.model
       .find(this.scope(userId))
       .sort({ isDefault: -1, createdAt: -1 })
+      .populate(this.platformPopulate)
       .lean()
       .exec();
   }
 
   async getMineById(userId: Types.ObjectId, id: string) {
     const _id = this.toObjectId(id);
-    const doc = await this.model.findOne(this.scope(userId, { _id })).lean().exec();
+    const doc = await this.model
+      .findOne(this.scope(userId, { _id }))
+      .populate(this.platformPopulate)
+      .lean()
+      .exec();
+
     if (!doc) throw new NotFoundException('UserPlatform not found');
     return doc;
   }
 
-  /* Default handling */
-
-  private async clearOtherDefaults(userId: Types.ObjectId, keepId: Types.ObjectId) {
-    await this.model.updateMany(
-      this.scope(userId, { _id: { $ne: keepId }, isDefault: true }),
-      { $set: { isDefault: false } },
-    );
-  }
+  /* ========== Default handling ========== */
 
   /** Marca un registro como default y limpia otros del mismo usuario */
   async setDefaultMine(userId: Types.ObjectId, id: string) {
@@ -71,14 +86,19 @@ export class UserPlatformsService {
       await this.clearOtherDefaults(userId, doc._id);
     }
 
-    return doc.toObject();
+    // devolver poblado
+    return this.model
+      .findById(doc._id)
+      .populate(this.platformPopulate)
+      .lean()
+      .exec();
   }
 
-  /* Mutations */
+  /* ========== Mutations ========== */
 
   /**
    * Crea (o trae existente) la relación user-platform.
-   * - Si ya existe, la retorna.
+   * - Si ya existe, la reutiliza y la retorna.
    * - Si isDefault=true, deja esta como default y limpia otras.
    */
   async createMine(
@@ -88,7 +108,7 @@ export class UserPlatformsService {
   ) {
     const pId = this.toObjectId(platformId);
 
-    // upsert con unique (userId, platformId)
+    // Revisa si ya existe (unique por userId+platformId a nivel de índice)
     let doc = await this.model.findOne(this.scope(userId, { platformId: pId }));
 
     if (!doc) {
@@ -118,17 +138,31 @@ export class UserPlatformsService {
       await this.clearOtherDefaults(userId, doc._id);
     }
 
-    return doc.toObject();
+    // devolver poblado
+    return this.model
+      .findById(doc._id)
+      .populate(this.platformPopulate)
+      .lean()
+      .exec();
   }
 
-  async changeStatusMine(userId: Types.ObjectId, id: string, status: UserPlatformStatus) {
+  async changeStatusMine(
+    userId: Types.ObjectId,
+    id: string,
+    status: UserPlatformStatus,
+  ) {
     const _id = this.toObjectId(id);
     const doc = await this.model.findOne(this.scope(userId, { _id }));
     if (!doc) throw new NotFoundException('UserPlatform not found');
 
     doc.status = status;
     await doc.save();
-    return doc.toObject();
+
+    return this.model
+      .findById(doc._id)
+      .populate(this.platformPopulate)
+      .lean()
+      .exec();
   }
 
   async updateMine(
@@ -154,7 +188,11 @@ export class UserPlatformsService {
       await this.clearOtherDefaults(userId, doc._id);
     }
 
-    return doc.toObject();
+    return this.model
+      .findById(doc._id)
+      .populate(this.platformPopulate)
+      .lean()
+      .exec();
   }
 
   async removeMine(userId: Types.ObjectId, id: string) {

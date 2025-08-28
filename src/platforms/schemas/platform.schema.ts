@@ -11,6 +11,11 @@ export enum PlatformCategory {
   OTHER = 'other',
 }
 
+export enum ConnectionType {
+  APIKEY = 'apikey',
+  OAUTH = 'oauth',
+}
+
 @Schema({ timestamps: true })
 export class Platform {
   @Prop({ required: true, trim: true, unique: true })
@@ -25,15 +30,16 @@ export class Platform {
   @Prop({ default: true })
   isActive: boolean;
 
-  /** Nuevo: indica si el frontend/backend tienen soporte para esta plataforma */
+  /** Indica si el frontend/backend tienen soporte para esta plataforma */
   @Prop({ default: false })
   isSupported: boolean;
 
-  // timestamps (createdAt/updatedAt) los añade Mongoose por @Schema({ timestamps: true })
+  /** Tipo de conexión de esta plataforma (APIKEY u OAUTH) */
+  @Prop({ type: String, enum: Object.values(ConnectionType), required: true })
+  connectionType: ConnectionType;
 }
 
 export const PlatformSchema = SchemaFactory.createForClass(Platform);
 
-// Índice por nombre (único) ya está por Prop unique: true
-// Puedes agregar más índices si luego haces búsquedas específicas:
-// PlatformSchema.index({ category: 1, isActive: 1 });
+PlatformSchema.index({ category: 1, isActive: 1 });
+PlatformSchema.index({ connectionType: 1, isSupported: 1 });

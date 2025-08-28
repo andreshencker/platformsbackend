@@ -46,6 +46,21 @@ export class PlatformsController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  async getById(@Param('id') id: string) {
+    try {
+      const data = await this.service.findById(id);
+      return { status: 200, message: 'OK', data };
+    } catch (err: any) {
+      const code = err?.status ?? HttpStatus.INTERNAL_SERVER_ERROR;
+      throw new HttpException(
+        { status: code, message: err?.message ?? 'Error' },
+        code,
+      );
+    }
+  }
+
   /** POST /platforms — solo ADMIN */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
