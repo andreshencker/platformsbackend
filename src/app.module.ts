@@ -10,6 +10,8 @@ import { BinanceFuturesModule } from './integrations/binance/api/futures/binance
 import { PlatformsModule } from './platforms/platforms.module';
 import { BinanceAccountsModule } from './integrations/binance/binance-accounts/binance-accounts.module';
 import { UserPlatformsModule } from './user-platforms/user-platforms.module';
+import { SpotModule } from './integrations/binance/api/spot/spot.module';
+import { MarginModule } from './integrations/binance/api/margin/margin.module';
 
 
 @Module({
@@ -48,6 +50,8 @@ import { UserPlatformsModule } from './user-platforms/user-platforms.module';
     PlatformsModule,
     BinanceAccountsModule,
     UserPlatformsModule,
+    MarginModule,
+    SpotModule,
   ],
   providers: [],
   controllers: [],
