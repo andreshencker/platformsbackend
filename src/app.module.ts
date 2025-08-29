@@ -6,7 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 // importa tus módulos reales
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { BinanceModule } from './integrations/binance/futures/binance.module';
+import { BinanceFuturesModule } from './integrations/binance/api/futures/binanceFutures.module';
 import { PlatformsModule } from './platforms/platforms.module';
 import { BinanceAccountsModule } from './integrations/binance/binance-accounts/binance-accounts.module';
 import { UserPlatformsModule } from './user-platforms/user-platforms.module';
@@ -44,7 +44,7 @@ import { UserPlatformsModule } from './user-platforms/user-platforms.module';
     // 3) Resto de módulos
     AuthModule,
     UsersModule,
-    BinanceModule,
+    BinanceFuturesModule,
     PlatformsModule,
     BinanceAccountsModule,
     UserPlatformsModule,

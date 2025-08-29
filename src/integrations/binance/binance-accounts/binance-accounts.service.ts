@@ -36,6 +36,37 @@ export class BinanceAccountsService {
     if (o?.apiSecret !== undefined) delete o.apiSecret;
     return o;
   }
+  async getOrThrow(accountId: string): Promise<BinanceAccountDocument> {
+    const id = (accountId ?? '').trim();
+    const is24hex = /^[0-9a-fA-F]{24}$/.test(id);
+    if (!is24hex) {
+      this.log.warn(`Invalid accountId received: "${accountId}" -> cleaned "${id}"`);
+      throw new HttpException('Invalid accountId', HttpStatus.BAD_REQUEST);
+    }
+    const doc = await this.accountModel.findById(new Types.ObjectId(id)).lean();
+    if (!doc) {
+      throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+    }
+    // @ts-ignore: devolvemos el doc lean como Document para reutilizar tipos
+    return doc as unknown as BinanceAccountDocument;
+  }
+
+  // 👇 utilitario centralizado para desencriptar
+  async getDecryptedCredsOrThrow(id: string): Promise<{ apiKey: string; apiSecret: string }> {
+    const doc = await this.getOrThrow(id);
+    if (!doc.apiKey || !doc.apiSecret) {
+      throw new HttpException('Missing API credentials in account', HttpStatus.BAD_REQUEST);
+    }
+    try {
+      return {
+        apiKey: doc.apiKey,
+        apiSecret: this.enc.decode(doc.apiSecret),
+      };
+    } catch (e: any) {
+      this.log.error(`Decrypt failed for account ${id}: ${e?.message ?? e}`);
+      throw new HttpException('Could not decrypt API secret', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 
   /** Normaliza un error desconocido a HttpException */
   private asHttpError(e: any, fallback: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR) {

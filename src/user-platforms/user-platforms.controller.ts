@@ -17,12 +17,17 @@ import { CreateUserPlatformDto } from './dto/create-user-platform.dto';
 import { UpdateUserPlatformDto } from './dto/update-user-platform.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/schemas/user.schema';
 
 @UseGuards(JwtAuthGuard)
 @Controller('user-platforms')
 export class UserPlatformsController {
   constructor(private readonly service: UserPlatformsService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   /** Extrae y valida el ObjectId del usuario desde req.user */
   private getUserId(req: Request): Types.ObjectId {
     const raw =
@@ -52,6 +57,8 @@ export class UserPlatformsController {
     );
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   @Get()
   async listMine(@Req() req: Request) {
     try {
@@ -63,6 +70,8 @@ export class UserPlatformsController {
     }
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   @Post()
   async create(@Req() req: Request, @Body() dto: CreateUserPlatformDto) {
     try {
@@ -74,6 +83,8 @@ export class UserPlatformsController {
     }
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   @Get(':id')
   async getById(@Req() req: Request, @Param('id') id: string) {
     try {
@@ -85,6 +96,8 @@ export class UserPlatformsController {
     }
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   /** Toggle/Set default (garantiza unicidad por usuario) */
   @Patch(':id/default')
   async setDefault(@Req() req: Request, @Param('id') id: string) {
@@ -97,6 +110,8 @@ export class UserPlatformsController {
     }
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   /** Cambiar estado (pending/connected/disconnected/error) */
   @Patch(':id/status')
   async changeStatus(
@@ -113,6 +128,8 @@ export class UserPlatformsController {
     }
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   /** Actualizaciones simples (isActive / isDefault) */
   @Patch(':id')
   async update(
@@ -129,6 +146,8 @@ export class UserPlatformsController {
     }
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.CLIENT)
   @Delete(':id')
   async remove(@Req() req: Request, @Param('id') id: string) {
     try {
