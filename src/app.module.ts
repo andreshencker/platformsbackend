@@ -12,6 +12,7 @@ import { BinanceAccountsModule } from './integrations/binance/binance-accounts/b
 import { UserPlatformsModule } from './user-platforms/user-platforms.module';
 import { SpotModule } from './integrations/binance/api/spot/spot.module';
 import { MarginModule } from './integrations/binance/api/margin/margin.module';
+import { UserSymbolsModule } from './integrations/binance/user-symbols/user-symbols.module';
 
 
 @Module({
@@ -52,6 +53,7 @@ import { MarginModule } from './integrations/binance/api/margin/margin.module';
     UserPlatformsModule,
     MarginModule,
     SpotModule,
+    UserSymbolsModule,
   ],
   providers: [],
   controllers: [],

@@ -85,6 +85,31 @@ export class BinanceClientFactory {
       throw new HttpException('Failed to init EAPI client', HttpStatus.BAD_GATEWAY);
     }
   }
+  async sapi(accountId: string): Promise<{ http: AxiosInstance; creds: DecryptedCreds }> {
+    const creds = await this.getCreds(accountId);
+    try {
+      const http = axios.create({
+        baseURL: 'https://api.binance.com',
+        timeout: 15000,
+        headers: { 'X-MBX-APIKEY': creds.apiKey },
+      });
+      return { http, creds };
+    } catch (e: any) {
+      this.log.error(`SAPI client init failed: ${e?.message ?? e}`);
+      throw new HttpException('Failed to init SAPI client', HttpStatus.BAD_GATEWAY);
+    }
+  }
+
+  /** Aliases para que tus services actuales no cambien */
+  async spot(accountId: string) {
+    return this.sapi(accountId);
+  }
+  async marginCross(accountId: string) {
+    return this.sapi(accountId);
+  }
+  async marginIsolated(accountId: string) {
+    return this.sapi(accountId);
+  }
 
   /* =========================
      Firma de consultas (HMAC)

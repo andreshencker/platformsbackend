@@ -1,17 +1,14 @@
 // src/integrations/binance/api/spot/spot.controller.ts
 import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-  HttpStatus,
-  HttpException,
+  Controller, Get, Query, UseGuards, HttpException, HttpStatus
 } from '@nestjs/common';
-import { SpotService, SpotUserTradesParams } from './spot.service';
 import { JwtAuthGuard } from '../../../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../../auth/guards/roles.guard';
 import { Roles } from '../../../../auth/decorators/roles.decorator';
 import { UserRole } from '../../../../users/schemas/user.schema';
+
+import { SpotService } from './spot.service';
+import type { SpotUserTradesParams } from './spot.service'; // 👈 IMPORT TYPE
 
 @UseGuards(JwtAuthGuard)
 @Controller('binance/spot')
